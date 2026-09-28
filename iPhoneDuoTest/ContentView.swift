@@ -13,8 +13,8 @@ struct ContentView: View {
             Tab("配置", systemImage: "rectangle.split.2x1") {
                 ArrangementSampleView()
             }
-            Tab("Sample 4", systemImage: "4.square") {
-                PlaceholderView(title: "Sample 4")
+            Tab("予約領域", systemImage: "camera.metering.center.weighted") {
+                ReservedRegionsView()
             }
             Tab("Sample 5", systemImage: "5.square") {
                 PlaceholderView(title: "Sample 5")
