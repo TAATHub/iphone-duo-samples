@@ -10,8 +10,8 @@ struct ContentView: View {
             Tab("レイアウト", systemImage: "rectangle.dashed") {
                 ScreenLayoutView()
             }
-            Tab("Sample 3", systemImage: "3.square") {
-                PlaceholderView(title: "Sample 3")
+            Tab("配置", systemImage: "rectangle.split.2x1") {
+                ArrangementSampleView()
             }
             Tab("Sample 4", systemImage: "4.square") {
                 PlaceholderView(title: "Sample 4")
