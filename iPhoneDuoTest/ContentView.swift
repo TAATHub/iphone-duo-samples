@@ -7,8 +7,8 @@ struct ContentView: View {
             Tab("ヒンジ", systemImage: "angle") {
                 HingeAngleView()
             }
-            Tab("Sample 2", systemImage: "2.square") {
-                PlaceholderView(title: "Sample 2")
+            Tab("レイアウト", systemImage: "rectangle.dashed") {
+                ScreenLayoutView()
             }
             Tab("Sample 3", systemImage: "3.square") {
                 PlaceholderView(title: "Sample 3")
