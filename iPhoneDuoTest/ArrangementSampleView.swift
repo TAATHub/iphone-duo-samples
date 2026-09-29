@@ -149,14 +149,14 @@ private struct NowPlayingView: View {
 
 private struct LyricsView: View {
     private let lines = [
-        "朝の光が窓をたたく",
-        "まだ眠たい街を歩く",
-        "ヒンジの向こうに広がる景色",
-        "ひとつの画面がふたつになる",
-        "開いて 閉じて また開いて",
-        "見えなかったものが見えてくる",
-        "左にことば 右にメロディ",
-        "今日もどこかで鳴っている",
+        "Morning light taps on the window",
+        "Walking through a sleepy town",
+        "A view that opens past the hinge",
+        "One screen turning into two",
+        "Open, close, and open again",
+        "Things unseen come into view",
+        "Words on the left, melody on the right",
+        "Still playing somewhere today",
     ]
     private let currentIndex = 2
 

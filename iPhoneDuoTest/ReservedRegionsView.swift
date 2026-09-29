@@ -60,7 +60,7 @@ struct ReservedRegionsView: View {
             Text("Reserved Regions")
                 .font(.largeTitle.bold())
             if regions.isEmpty {
-                Text("なし")
+                Text("None")
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
