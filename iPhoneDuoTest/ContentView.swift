@@ -16,8 +16,8 @@ struct ContentView: View {
             Tab("Regions", systemImage: "camera.metering.center.weighted") {
                 ReservedRegionsView()
             }
-            Tab("Sample 5", systemImage: "5.square") {
-                PlaceholderView(title: "Sample 5")
+            Tab("Toolbar", systemImage: "menubar.rectangle") {
+                ToolbarSampleView()
             }
         }
     }
