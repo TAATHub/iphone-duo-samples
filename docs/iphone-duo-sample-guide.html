@@ -1,0 +1,1223 @@
+<title>iPhone Duo サンプルアプリ解説</title>
+<style>
+/* Layout: Apple のドキュメントに寄せた構成。左に全高のサイドバー目次、右に本文カラム。各タブ = 概要 → 動き（実測図） → コード */
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --sidebar: #fafafc;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #d2d2d7;
+  --hover: #e8e8ed;
+  --accent: #0066cc;
+  --window: #ff3b30;
+  --safe: #007aff;
+  --status: #34c759;
+  --code-bg: #f5f5f7;
+  --code-ink: #1d1d1f;
+  --tok-kw: #ad3da4;
+  --tok-str: #d12f1b;
+  --tok-num: #272ad8;
+  --tok-type: #703daa;
+  --tok-com: #707f8c;
+  --tag-ink: #ffffff;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --surface: #1d1d1f; --sidebar: #0b0b0c; --ink: #f5f5f7; --muted: #86868b; --line: #424245; --hover: #2c2c2e;
+    --accent: #2997ff; --window: #ff453a; --safe: #0a84ff; --status: #30d158;
+    --code-bg: #1d1d1f; --code-ink: #f5f5f7;
+    --tok-kw: #fc5fa3; --tok-str: #fc6a5d; --tok-num: #d0bf69; --tok-type: #d0a8ff; --tok-com: #7f8c98;
+    --tag-ink: #ffffff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --surface: #1d1d1f; --sidebar: #0b0b0c; --ink: #f5f5f7; --muted: #86868b; --line: #424245; --hover: #2c2c2e;
+  --accent: #2997ff; --window: #ff453a; --safe: #0a84ff; --status: #30d158;
+  --code-bg: #1d1d1f; --code-ink: #f5f5f7;
+  --tok-kw: #fc5fa3; --tok-str: #fc6a5d; --tok-num: #d0bf69; --tok-type: #d0a8ff; --tok-com: #7f8c98;
+  --tag-ink: #ffffff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.53;
+  letter-spacing: -0.01em;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { display: flex; flex-direction: column; gap: 48px; }
+h1, h2, h3, h4 { text-wrap: balance; line-height: 1.2; margin: 0; font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; }
+h1 { font-size: clamp(2rem, 4vw, 2.5rem); }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.6rem; }
+h4 { font-size: 1.15rem; }
+p { margin: 0; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a.doc:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+a.doc code { color: var(--accent); }
+code { font-family: var(--font-mono); font-size: 0.88em; letter-spacing: 0; }
+.eyebrow { font-size: 1.05rem; color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* header */
+header.intro { padding-top: 40px; display: flex; flex-direction: column; gap: 14px; }
+.lead { font-size: 1.1rem; }
+.env { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 4px 0 0; font-size: 0.8rem; color: var(--muted); }
+.env div { display: flex; gap: 6px; align-items: baseline; }
+.env div + div::before { content: "|"; margin: 0 10px; color: var(--line); }
+.env dt::after { content: ":"; }
+.env dd { margin: 0; }
+
+/* nav: 広い画面では全高の左サイドバー、狭い画面では上部に固定 */
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+.layout > .wrap { width: 100%; max-width: 1040px; margin-inline: auto; padding-inline: 40px; padding-block: 0 80px; min-width: 0; }
+nav.toc {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: start;
+  background: var(--sidebar); border-right: 1px solid var(--line);
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 14px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+nav.toc .toc-title { font-size: 1rem; font-weight: 600; padding: 0 10px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+nav.toc a {
+  display: flex; gap: 10px; align-items: baseline;
+  color: var(--ink); font-size: 0.82rem; padding: 6px 10px; border-radius: 6px;
+}
+nav.toc a:hover { text-decoration: none; background: var(--hover); }
+nav.toc a span { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); min-width: 1.4em; }
+nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+nav.toc a[aria-current="true"] { background: var(--hover); font-weight: 600; }
+@media (max-width: 960px) {
+  .layout { display: block; }
+  .layout > .wrap { padding-inline: 16px; }
+  nav.toc {
+    height: auto; z-index: 5; padding: 10px 16px; border-right: none; border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(12px);
+    top: env(safe-area-inset-top, 0px);
+  }
+  nav.toc .toc-title { display: none; }
+  nav.toc ol { flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  nav.toc a { white-space: nowrap; }
+}
+
+/* tables */
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink); border-bottom-color: var(--ink); }
+td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* sections */
+section.tab { display: flex; flex-direction: column; gap: 22px; scroll-margin-top: 72px; }
+.tab-head { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 40px; }
+.block { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.block > h3 { margin-top: 10px; }
+ul.points { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+
+/* code */
+.code { background: var(--code-bg); border-radius: 15px; overflow-x: auto; }
+.code pre { margin: 0; padding: 16px 20px; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.65; color: var(--code-ink); letter-spacing: 0; }
+.code code { font-size: inherit; }
+.hljs-keyword, .hljs-built_in { color: var(--tok-kw); }
+.hljs-string { color: var(--tok-str); }
+.hljs-number, .hljs-literal { color: var(--tok-num); }
+.hljs-type, .hljs-title { color: var(--tok-type); }
+.hljs-comment { color: var(--tok-com); }
+.hljs-meta, .hljs-attribute { color: var(--tok-kw); }
+details.full { border-radius: 15px; background: var(--code-bg); }
+details.full summary { cursor: pointer; padding: 12px 20px; font-size: 0.88rem; color: var(--accent); }
+details.full summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 15px; }
+details.full[open] summary { border-bottom: 1px solid var(--line); }
+details.full .code { border-radius: 0 0 15px 15px; }
+
+/* figures */
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+figure { margin: 0; background: var(--code-bg); border-radius: 15px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+figure > svg { width: 100%; height: auto; display: block; max-width: 100%; }
+
+.figs.pair { display: flex; gap: 16px; align-items: stretch; }
+.figs.pair > figure:first-child { flex: 991 1 0; }
+.figs.pair > figure:last-child { flex: 506 1 0; }
+@media (max-width: 640px) { .figs.pair { flex-direction: column; } }
+.fig-title { font-weight: 700; font-size: 0.95rem; }
+/* 横方向の padding をなくし、SVG の幅比 = viewBox の幅比にして 2 枚の縮尺をそろえる */
+.figs.pair > figure { padding-inline: 0; }
+.figs.pair .fig-title, .figs.pair figcaption { padding-inline: 14px; }
+
+.arr-row { display: flex; flex-direction: column; gap: 10px; }
+.arr-row h4 { margin: 0; font-size: 1rem; }
+.arr-caption { font-size: 0.9rem; color: var(--muted); }
+.figs.pair3 { display: flex; gap: 12px; align-items: stretch; }
+.figs.pair3 > figure { padding-inline: 0; }
+.figs.pair3 .fig-title { padding-inline: 12px; font-size: 0.85rem; }
+@media (max-width: 720px) { .figs.pair3 { flex-direction: column; } }
+svg .tag-bg-p { fill: var(--window); }
+svg .tag-bg-s { fill: var(--safe); }
+svg .tag { fill: var(--tag-ink); font-family: var(--font-mono); font-size: 21px; font-weight: 500; }
+svg .mock-title { fill: #fff; font-family: var(--font-body); font-size: 24px; font-weight: 500; }
+svg .mock-song { fill: var(--ink); font-family: var(--font-body); font-size: 28px; font-weight: 700; }
+svg .mock-artist { fill: var(--muted); font-family: var(--font-body); font-size: 22px; }
+svg .lyrics-bg { fill: color-mix(in srgb, var(--muted) 12%, var(--surface)); }
+svg .mock-lyric { fill: var(--muted); fill-opacity: 0.55; font-family: var(--font-body); font-size: 24px; font-weight: 700; }
+svg .mock-lyric.now { fill: var(--ink); fill-opacity: 1; }
+svg .stack { fill: none; stroke: var(--ink); stroke-opacity: 0.35; stroke-width: 2; }
+svg .div-band { fill: color-mix(in srgb, var(--window) 22%, transparent); stroke: var(--window); stroke-width: 3; stroke-dasharray: 12 8; }
+
+svg .tb-bg { fill: color-mix(in srgb, var(--muted) 12%, var(--bg)); }
+svg .card { fill: var(--bg); }
+svg .bar { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
+svg .ico-line { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+svg .ico-fill { fill: var(--ink); }
+svg .ico-text { fill: var(--ink); font-family: var(--font-body); font-weight: 700; }
+svg .ico-accent { fill: var(--safe); }
+svg .tab-label { fill: var(--muted); fill-opacity: 0.5; }
+svg .camera { fill: var(--ink); }
+svg .popover { fill: var(--surface); stroke: var(--line); stroke-width: 2; filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.25)); }
+svg .pop-on { fill: color-mix(in srgb, var(--muted) 18%, var(--surface)); }
+svg .pop-label { fill: var(--ink); font-family: var(--font-body); font-size: 12px; font-weight: 500; }
+svg .pop-label.on { fill: var(--safe); }
+.figs.grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 280px)); gap: 12px; }
+/* 縦長の端末図は横幅いっぱいに広げると高くなりすぎるため、幅に上限を付ける */
+.figs.compact { display: flex; flex-wrap: wrap; gap: 12px; }
+.figs.compact > figure { flex: 0 1 228px; padding-inline: 0; }
+.figs.compact .fig-title { padding-inline: 12px; font-size: 0.85rem; }
+.figs.grid2 > figure { padding-inline: 0; }
+.figs.grid2 .fig-title { padding-inline: 12px; font-size: 0.85rem; }
+@media (max-width: 560px) { .figs.grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+svg .tb-time { fill: var(--ink); font-family: var(--font-body); font-size: 20px; font-weight: 700; }
+svg .tb-title { fill: var(--ink); font-family: var(--font-body); font-size: 34px; font-weight: 700; }
+.tb-legend code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+.arr-row h4 code { font-size: 0.85em; }
+figcaption { font-size: 0.85rem; color: var(--muted); }
+figcaption b { color: var(--ink); font-weight: 500; }
+svg .screen { fill: var(--bg); }
+svg .outline { fill: none; stroke: var(--ink); stroke-width: 4; }
+svg .win { fill: color-mix(in srgb, var(--window) 22%, var(--surface)); }
+svg .safe { fill: color-mix(in srgb, var(--safe) 12%, var(--surface)); stroke: var(--safe); stroke-width: 5; }
+svg .t { fill: var(--ink); font-family: var(--font-mono); font-size: 26px; }
+svg .t-s { fill: var(--muted); font-family: var(--font-mono); font-size: 22px; }
+svg .t-win { fill: var(--window); font-family: var(--font-mono); font-size: 24px; font-weight: 500; }
+svg .t-status { fill: var(--status); font-family: var(--font-mono); font-size: 24px; font-weight: 500; }
+svg .t-safe { fill: var(--safe); font-family: var(--font-mono); font-size: 24px; font-weight: 500; }
+svg .hinge { stroke: var(--window); stroke-width: 3; stroke-dasharray: 14 10; fill: none; }
+svg .div-in { fill: none; stroke: var(--window); stroke-width: 3; stroke-dasharray: 12 8; }
+svg .occ1-in { fill: none; stroke: var(--safe); stroke-width: 3; stroke-dasharray: 10 6; }
+svg .occ1-on { fill: color-mix(in srgb, var(--safe) 60%, transparent); }
+svg .occ2-on { fill: color-mix(in srgb, var(--status) 55%, transparent); }
+svg .pane-p { fill: color-mix(in srgb, var(--window) 14%, var(--surface)); }
+svg .pane-s { fill: color-mix(in srgb, var(--safe) 14%, var(--surface)); }
+svg .guide { stroke: var(--muted); stroke-width: 2; }
+svg .edge { fill: color-mix(in srgb, var(--muted) 22%, var(--bg)); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+
+ol.tabs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+ol.tabs-list li { border-bottom: 1px solid var(--line); }
+ol.tabs-list a { display: grid; grid-template-columns: 2rem 8.5rem 1fr; gap: 4px 12px; align-items: baseline; padding: 12px 16px; color: var(--ink); text-decoration: none; }
+ol.tabs-list a:hover .name, ol.tabs-list a:focus-visible .name { color: var(--accent); }
+ol.tabs-list a:hover { text-decoration: none; }
+ol.tabs-list a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+ol.tabs-list .no { font-family: var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+ol.tabs-list .name { font-weight: 700; }
+ol.tabs-list .desc { min-width: 0; }
+@media (max-width: 560px) { ol.tabs-list a { grid-template-columns: 2rem 1fr; } ol.tabs-list .desc { grid-column: 2; } }
+footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="layout">
+<nav class="toc" aria-label="目次">
+  <div class="toc-title">iPhone Duo サンプル</div>
+  <ol>
+    <li><a href="#overview"><span>00</span>構成</a></li>
+    <li><a href="#hinge"><span>01</span>Hinge</a></li>
+    <li><a href="#layout"><span>02</span>Layout</a></li>
+    <li><a href="#arrangement"><span>03</span>Arrangement</a></li>
+    <li><a href="#regions"><span>04</span>Regions</a></li>
+    <li><a href="#toolbar"><span>05</span>Toolbar</a></li>
+    <li><a href="#caveats"><span></span>注意点</a></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+
+<header class="intro">
+  <div class="eyebrow">iPhoneDuoTest · SwiftUI · iOS 27.1</div>
+  <h1>iPhone Duo サンプルアプリ解説</h1>
+  <p class="lead">iPhone Duo の画面サイズと、iOS 27.1 で増えた折りたたみ向けの API を 1 つずつ確かめるためのサンプルアプリです。5 つのタブそれぞれで別の機能を実装しています。このページでは、各タブが何を確かめるものか、シミュレータでどう動いたか、どんなコードで書いたかをまとめます。</p>
+  <dl class="env">
+    <div><dt>Xcode</dt><dd>27.1 beta</dd></div>
+    <div><dt>SDK / Deployment</dt><dd>iOS 27.1</dd></div>
+    <div><dt>確認環境</dt><dd>iPhone Duo シミュレータ</dd></div>
+  </dl>
+</header>
+
+<section class="tab" id="overview">
+  <div class="tab-head">
+    <div class="eyebrow">00 · App</div>
+    <h2>アプリの構成</h2>
+  </div>
+  <p>5 つのタブに、それぞれ別の機能のサンプルが入っています。</p>
+  <ol class="tabs-list">
+    <li><a href="#hinge"><span class="no">1</span><span class="name">Hinge</span><span class="desc">ヒンジの角度をリアルタイムに表示する</span></a></li>
+    <li><a href="#layout"><span class="no">2</span><span class="name">Layout</span><span class="desc">画面サイズ、セーフエリア、サイズクラスを色分けして表示する</span></a></li>
+    <li><a href="#arrangement"><span class="no">3</span><span class="name">Arrangement</span><span class="desc">ArrangementView で 2 つの View を重ねる／並べる（プレイヤー、歌詞表示）</span></a></li>
+    <li><a href="#regions"><span class="no">4</span><span class="name">Regions</span><span class="desc">ヒンジやカメラに隠される領域を画面上に描く</span></a></li>
+    <li><a href="#toolbar"><span class="no">5</span><span class="name">Toolbar</span><span class="desc">縦のバーに移るツールバー項目の扱いを見比べる</span></a></li>
+  </ol>
+</section>
+
+<section class="tab" id="hinge">
+  <div class="tab-head">
+    <div class="eyebrow">01 · Hinge</div>
+    <h2>ヒンジの角度を表示する</h2>
+  </div>
+  <div class="block">
+    <h3>概要</h3>
+    <p>端末をどれだけ開いているかを、角度（度）で受け取れるかを確かめます。</p>
+  </div>
+  <div class="block">
+    <h3>動き</h3>
+    <ul class="points">
+      <li>画面中央に「Hinge Angle」の見出しと、角度を小数第 1 位まで大きく表示します。</li>
+      <li>シミュレータで開き具合を変えると値が変わり、途中の角度では <code>127.8°</code>、平らに開くと <code>180.0°</code> になりました。</li>
+      <li>数字は等幅にしているので、値が変わっても表示位置がぶれません。</li>
+    </ul>
+  </div>
+  <div class="block">
+    <h3>コード</h3>
+    <p><a class="doc" href="https://developer.apple.com/documentation/swiftui/view/onhingechange(isenabled:_:)" target="_blank" rel="noopener"><code>onHingeChange</code></a> は変化の前後の状態を受け取ります。<code>newContext.hinge</code> はヒンジのない端末では <code>nil</code> になるので、<code>guard</code> で抜けます。</p>
+    <div class="code"><pre><code class="language-swift">@State private var foldingAngle: Double = 0
+
+Text(&quot;\(foldingAngle, format: .number.precision(.fractionLength(1)))°&quot;)
+    .font(.system(size: 96, weight: .bold, design: .rounded))
+    .monospacedDigit()
+    .onHingeChange { oldContext, newContext in
+        guard let hinge = newContext.hinge else { return }
+        foldingAngle = hinge.angle.degrees
+    }</code></pre></div>
+    <p class="muted">ヒンジには角度のほか、状態 <a class="doc" href="https://developer.apple.com/documentation/swiftui/devicehinge/status-swift.property" target="_blank" rel="noopener"><code>hinge.status</code></a>（<code>.closed</code> / <code>.partiallyOpen</code> / <code>.fullyOpen</code>）もあります。このサンプルでは角度だけを使っています。</p>
+    <details class="full"><summary>全文を表示</summary><div class="code"><pre><code class="language-swift">import SwiftUI
+
+struct HingeAngleView: View {
+    @State private var foldingAngle: Double = 0
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(&quot;Hinge Angle&quot;)
+                .font(.largeTitle)
+                .bold()
+                .foregroundStyle(.secondary)
+
+            Text(&quot;\(foldingAngle, format: .number.precision(.fractionLength(1)))°&quot;)
+                .font(.system(size: 96, weight: .bold, design: .rounded))
+                .monospacedDigit()
+        }
+        .onHingeChange { oldContext, newContext in
+            guard let hinge = newContext.hinge else { return }
+            foldingAngle = hinge.angle.degrees
+        }
+    }
+}
+
+#Preview {
+    HingeAngleView()
+}</code></pre></div></details>
+  </div>
+</section>
+
+<section class="tab" id="layout">
+  <div class="tab-head">
+    <div class="eyebrow">02 · Layout</div>
+    <h2>画面サイズとセーフエリアを見る</h2>
+  </div>
+  <div class="block">
+    <h3>概要</h3>
+    <p>閉じた状態と開いた状態で、画面全体の大きさ、セーフエリア（コンテンツを置いてよい範囲）、サイズクラスがどう変わるかを確かめます。</p>
+  </div>
+  <div class="block">
+    <h3>動き</h3>
+    <ul class="points">
+      <li>セーフエリアの外を赤、内側を薄い青と太い青枠で塗り分けます。</li>
+      <li>左上に Window（赤）と Safe Area（青）のサイズのカードを出します。</li>
+      <li>セーフエリアの上下左右の辺の中央に、その辺の余白の大きさを出します。</li>
+      <li>画面中央にサイズクラスを大きく出します。</li>
+    </ul>
+    <div class="figs pair">
+      <figure>
+        <div class="fig-title">開いた状態（横向き）</div>
+        <svg viewBox="-20 -20 991 760" role="img" aria-label="開いた横向き: 画面 951×669pt、セーフエリア 867×635pt、右 84pt と下 34pt が余白">
+          <defs><clipPath id="clip1"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs>
+          <rect class="screen" x="0" y="0" width="951" height="669" rx="36"/>
+          <g clip-path="url(#clip1)">
+          <rect class="win" x="0" y="0" width="951" height="669"/>
+          <rect class="safe" x="0" y="0" width="867" height="635"/>
+          <line class="hinge" x1="475.5" y1="0" x2="475.5" y2="669"/>
+          </g>
+          <rect class="outline" x="0" y="0" width="951" height="669" rx="36"/>
+          <text class="t-safe" x="30" y="50">Safe Area 867 × 635 pt</text>
+          <text class="t-win" x="30" y="700">Window 951 × 669 pt · 2853 × 2007 px @3x</text>
+          <text class="t-win" x="880" y="330">→ 84</text>
+          <text class="t-win" x="400" y="660">↓ 34</text>
+          <text class="t-win" x="490" y="600">ヒンジ</text>
+          <text class="t" x="300" y="310">H regular</text>
+          <text class="t" x="300" y="350">V regular</text>
+        </svg>
+        <figcaption>右の 84pt はステータスバーとタブバーの列、下の 34pt はホームインジケータの分です。上と左の余白は 0 です。</figcaption>
+      </figure>
+      <figure>
+        <div class="fig-title">閉じた状態</div>
+        <svg viewBox="-20 -20 506 760" role="img" aria-label="閉じた状態: 画面 466×678pt、セーフエリア 382×644pt、右 84pt と下 34pt が余白">
+          <defs><clipPath id="clip2"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs>
+          <rect class="screen" x="0" y="0" width="466" height="678" rx="36"/>
+          <g clip-path="url(#clip2)">
+          <rect class="win" x="0" y="0" width="466" height="678"/>
+          <rect class="safe" x="0" y="0" width="382" height="644"/>
+          </g>
+          <rect class="outline" x="0" y="0" width="466" height="678" rx="36"/>
+          <text class="t-safe" x="24" y="46">Safe Area</text>
+          <text class="t-safe" x="24" y="76">382 × 644 pt</text>
+          <text class="t-win" x="0" y="712">Window 466 × 678 pt</text>
+          <text class="t-win" x="0" y="738">1398 × 2034 px @3x</text>
+          <text class="t-win" x="388" y="330">→84</text>
+          <text class="t-win" x="160" y="668">↓ 34</text>
+          <text class="t" x="110" y="320">H compact</text>
+          <text class="t" x="110" y="360">V regular</text>
+        </svg>
+        <figcaption>余白の付き方は開いたときと同じで、右 84pt・下 34pt です。横方向のサイズクラスが compact に変わります。</figcaption>
+      </figure>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>閉じた状態</th><th>開いた状態（横向き）</th></tr></thead>
+        <tbody>
+          <tr><td>Window</td><td class="num">466 × 678 pt</td><td class="num">951 × 669 pt</td></tr>
+          <tr><td>Window（px）</td><td class="num">1398 × 2034 px</td><td class="num">2853 × 2007 px</td></tr>
+          <tr><td>Scale</td><td class="num">@3x</td><td class="num">@3x</td></tr>
+          <tr><td>Safe Area</td><td class="num">382 × 644 pt</td><td class="num">867 × 635 pt</td></tr>
+          <tr><td>余白（上 / 下 / 左 / 右）</td><td class="num">0 / 34 / 0 / 84</td><td class="num">0 / 34 / 0 / 84</td></tr>
+          <tr><td>Size Class（横 / 縦）</td><td class="num">compact / regular</td><td class="num">regular / regular</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="block">
+    <h3>コード</h3>
+    <p><a class="doc" href="https://developer.apple.com/documentation/swiftui/geometryreader" target="_blank" rel="noopener"><code>GeometryReader</code></a> の <code>proxy.size</code> はセーフエリアの内側の大きさです。<a class="doc" href="https://developer.apple.com/documentation/swiftui/geometryproxy/safeareainsets" target="_blank" rel="noopener"><code>proxy.safeAreaInsets</code></a> を足し戻すと画面全体の大きさになります。px は <code>displayScale</code> を掛けて求めています。</p>
+    <div class="code"><pre><code class="language-swift">GeometryReader { proxy in
+    let insets = proxy.safeAreaInsets
+    // proxy.size はセーフエリアの内側。インセットを足し戻すと画面全体になる
+    let fullSize = CGSize(
+        width: proxy.size.width + insets.leading + insets.trailing,
+        height: proxy.size.height + insets.top + insets.bottom
+    )
+    ...
+}
+.background(windowColor.opacity(0.25).ignoresSafeArea())
+
+@Environment(\.displayScale) private var displayScale          // @3x
+@Environment(\.horizontalSizeClass) private var horizontalSizeClass
+@Environment(\.verticalSizeClass) private var verticalSizeClass</code></pre></div>
+    <details class="full"><summary>全文を表示</summary><div class="code"><pre><code class="language-swift">import SwiftUI
+
+struct ScreenLayoutView: View {
+    @Environment(\.displayScale) private var displayScale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private let windowColor = Color.red
+    private let safeAreaColor = Color.blue
+
+    var body: some View {
+        GeometryReader { proxy in
+            let insets = proxy.safeAreaInsets
+            let fullSize = CGSize(
+                width: proxy.size.width + insets.leading + insets.trailing,
+                height: proxy.size.height + insets.top + insets.bottom
+            )
+
+            ZStack {
+                sizeClassLabel
+
+                VStack(alignment: .leading, spacing: 16) {
+                    sizeCard(
+                        title: &quot;Window&quot;,
+                        size: fullSize,
+                        detail: &quot;\(format(fullSize * displayScale)) px  @\(format(displayScale))x&quot;,
+                        color: windowColor
+                    )
+                    sizeCard(
+                        title: &quot;Safe Area&quot;,
+                        size: proxy.size,
+                        detail: nil,
+                        color: safeAreaColor
+                    )
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(24)
+
+                insetLabel(&quot;↑ \(format(insets.top))&quot;)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                insetLabel(&quot;↓ \(format(insets.bottom))&quot;)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                insetLabel(&quot;← \(format(insets.leading))&quot;)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                insetLabel(&quot;→ \(format(insets.trailing))&quot;)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .background {
+                // 下地を不透明にしておかないと、セーフエリア外の塗りと混ざって境界が見えなくなる
+                Rectangle()
+                    .fill(Color(.systemBackground))
+                    .overlay(safeAreaColor.opacity(0.12))
+                    .overlay(Rectangle().strokeBorder(safeAreaColor, lineWidth: 6))
+            }
+        }
+        .background(windowColor.opacity(0.25).ignoresSafeArea())
+    }
+
+    private var sizeClassLabel: some View {
+        VStack(spacing: 4) {
+            Text(&quot;Size Class&quot;)
+                .font(.title3.bold())
+                .foregroundStyle(.secondary)
+            Grid(alignment: .leading, horizontalSpacing: 16) {
+                GridRow {
+                    Text(&quot;H&quot;)
+                        .foregroundStyle(.secondary)
+                    Text(describe(horizontalSizeClass))
+                }
+                GridRow {
+                    Text(&quot;V&quot;)
+                        .foregroundStyle(.secondary)
+                    Text(describe(verticalSizeClass))
+                }
+            }
+            .font(.system(size: 40, weight: .bold, design: .rounded))
+            .minimumScaleFactor(0.5)
+        }
+        // 左右端のインセットラベルと重ならないよう、その分の幅を空けておく
+        .padding(.horizontal, 64)
+    }
+
+    private func sizeCard(title: String, size: CGSize, detail: String?, color: Color) -&gt; some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.headline)
+            Text(&quot;\(format(size)) pt&quot;)
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+            if let detail {
+                Text(detail)
+                    .font(.subheadline)
+            }
+        }
+        .monospacedDigit()
+        .foregroundStyle(color)
+        .padding(12)
+        .background(color.opacity(0.15), in: .rect(cornerRadius: 12))
+    }
+
+    private func insetLabel(_ text: String) -&gt; some View {
+        Text(text)
+            .font(.headline)
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(safeAreaColor, in: .capsule)
+            .padding(4)
+    }
+
+    private func format(_ value: CGFloat) -&gt; String {
+        Double(value).formatted(.number.precision(.fractionLength(0...1)))
+    }
+
+    private func format(_ size: CGSize) -&gt; String {
+        &quot;\(format(size.width)) × \(format(size.height))&quot;
+    }
+
+    private func describe(_ sizeClass: UserInterfaceSizeClass?) -&gt; String {
+        switch sizeClass {
+        case .compact: &quot;compact&quot;
+        case .regular: &quot;regular&quot;
+        default: &quot;unknown&quot;
+        }
+    }
+}
+
+private extension CGSize {
+    static func * (size: CGSize, scale: CGFloat) -&gt; CGSize {
+        CGSize(width: size.width * scale, height: size.height * scale)
+    }
+}
+
+#Preview {
+    ScreenLayoutView()
+}</code></pre></div></details>
+  </div>
+</section>
+
+<section class="tab" id="arrangement">
+  <div class="tab-head">
+    <div class="eyebrow">03 · Arrangement</div>
+    <h2>ArrangementView で 2 つの View を配置する</h2>
+  </div>
+  <div class="block">
+    <h3>概要</h3>
+    <p><a class="doc" href="https://developer.apple.com/documentation/swiftui/arrangementview" target="_blank" rel="noopener"><code>ArrangementView</code></a> は、primary と secondary の 2 つの View を、画面の広さや端末の状態に合わせて配置するコンテナです。配置のしかたは <a class="doc" href="https://developer.apple.com/documentation/swiftui/view/arrangementviewstyle(_:)" target="_blank" rel="noopener"><code>.arrangementViewStyle</code></a> で選びます。スタイルを指定しない場合（<code>automatic</code>）は <a class="doc" href="https://developer.apple.com/documentation/swiftui/splitarrangementviewstyle" target="_blank" rel="noopener"><code>split</code></a> 扱いになります。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>スタイル</th><th>配置</th><th>向いている用途</th></tr></thead>
+        <tbody>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/overlayarrangementviewstyle" target="_blank" rel="noopener"><code>.overlay</code></a></td><td>primary を secondary の上に重ねる。端末を折るなど環境が変わると、横に並ぶ配置へ切り替わることがある</td><td>動画の上に操作パネルを重ねるプレイヤー</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/splitarrangementviewstyle" target="_blank" rel="noopener"><code>.split</code></a></td><td>primary と secondary を並べる。縦並びか横並びかは画面の広さとサイズクラスで決まる</td><td>再生中の曲と歌詞を同時に見せる</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="block">
+    <h3>動き</h3>
+    <p>画面上部のセグメントで、次の 3 つのサンプルを切り替えます。</p>
+    <ul class="points">
+      <li><b>Basic (overlay)</b>: primary に「Primary View」（赤）、secondary に「Secondary View」（青）を置いた最小構成です。</li>
+      <li><b>Player (overlay)</b>: <a href="https://developer.apple.com/documentation/swiftui/arrangementview" target="_blank" rel="noopener">公式ドキュメント</a>の例です。グラデーションの動画面の下端に、半透明の操作パネル（シークバー、10 秒戻す、再生、10 秒送る）を重ねます。</li>
+      <li><b>Lyrics (split)</b>: <a href="https://developer.apple.com/documentation/swiftui/arrangementview" target="_blank" rel="noopener">公式ドキュメント</a>の例です。左にジャケット・曲名・再生ボタン、右に歌詞を並べます。</li>
+    </ul>
+    <div class="legend"><span><i style="background: color-mix(in srgb, var(--muted) 35%, var(--surface))"></i>セーフエリアの外</span><span>赤の点線 = ヒンジ（半開きでは帯 = ヒンジの領域）</span></div><div class="arr-row"><h4>Basic (overlay)</h4><div class="figs pair3"><figure style="flex: 486 1 0"><div class="fig-title">閉じた状態</div><svg viewBox="-10 -10 486 698" role="img" aria-label="閉じた状態: primary が secondary に重なる"><defs><clipPath id="arrclip1"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#arrclip1)"><rect class="edge" x="0" y="0" width="466" height="678" rx="0"/><rect class="screen" x="0" y="0" width="382" height="644" rx="0"/><svg x="0" y="0" width="382" height="644" overflow="hidden"><rect class="pane-s" x="0" y="0" width="382" height="644" rx="0"/><text class="t-s" x="24" y="44">secondary（背面）</text></svg><svg x="24" y="70" width="334" height="550" overflow="hidden"><rect class="pane-p" x="0" y="0" width="334" height="550" rx="0"/><text class="t" x="167.0" y="275.0" text-anchor="middle">primary</text><text class="t-s" x="167.0" y="309.0" text-anchor="middle">Primary View</text></svg><rect class="stack" x="24" y="70" width="334" height="550" rx="14"/></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 971 1 0"><div class="fig-title">半開き</div><svg viewBox="-10 -10 971 689" role="img" aria-label="半開き: secondary が左、primary が右"><defs><clipPath id="arrclip2"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs><g clip-path="url(#arrclip2)"><rect class="edge" x="0" y="0" width="951" height="669" rx="0"/><rect class="screen" x="0" y="0" width="867" height="635" rx="0"/><svg x="0" y="0" width="455.5" height="635" overflow="hidden"><rect class="pane-s" x="0" y="0" width="455.5" height="635" rx="0"/><text class="t" x="227.75" y="317.5" text-anchor="middle">secondary</text><text class="t-s" x="227.75" y="351.5" text-anchor="middle">Secondary View</text></svg><svg x="495.5" y="0" width="371.5" height="635" overflow="hidden"><rect class="pane-p" x="0" y="0" width="371.5" height="635" rx="0"/><text class="t" x="185.75" y="317.5" text-anchor="middle">primary</text><text class="t-s" x="185.75" y="351.5" text-anchor="middle">Primary View</text></svg><rect class="div-band" x="455.5" y="0" width="40.0" height="669" rx="0"/></g><rect class="outline" x="0" y="0" width="951" height="669" rx="36"/></svg></figure><figure style="flex: 971 1 0"><div class="fig-title">平らに開いた状態</div><svg viewBox="-10 -10 971 689" role="img" aria-label="平らに開いた状態: primary が secondary に重なる"><defs><clipPath id="arrclip3"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs><g clip-path="url(#arrclip3)"><rect class="edge" x="0" y="0" width="951" height="669" rx="0"/><rect class="screen" x="0" y="0" width="867" height="635" rx="0"/><svg x="0" y="0" width="867" height="635" overflow="hidden"><rect class="pane-s" x="0" y="0" width="867" height="635" rx="0"/><text class="t-s" x="24" y="44">secondary（背面）</text></svg><svg x="24" y="70" width="819" height="541" overflow="hidden"><rect class="pane-p" x="0" y="0" width="819" height="541" rx="0"/><text class="t" x="409.5" y="270.5" text-anchor="middle">primary</text><text class="t-s" x="409.5" y="304.5" text-anchor="middle">Primary View</text></svg><rect class="stack" x="24" y="70" width="819" height="541" rx="14"/><line class="hinge" x1="475.5" y1="0" x2="475.5" y2="669"/></g><rect class="outline" x="0" y="0" width="951" height="669" rx="36"/></svg></figure></div><p class="arr-caption">閉じた状態と平らに開いた状態では、primary が secondary の上に重なります。半開きにすると左右に分かれ、primary が右、secondary が左に来ます。境目はヒンジの領域（x 455.5〜495.5pt）で、どちらの View もヒンジをまたぎません。</p></div><div class="arr-row"><h4>Player (overlay)</h4><div class="figs pair3"><figure style="flex: 486 1 0"><div class="fig-title">閉じた状態</div><svg viewBox="-10 -10 486 698" role="img" aria-label="閉じた状態: 動画の下端に操作パネルが重なる"><defs><clipPath id="arrclip5"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#arrclip5)"><rect class="edge" x="0" y="0" width="466" height="678" rx="0"/><rect class="screen" x="0" y="0" width="382" height="644" rx="0"/><svg x="0" y="0" width="382" height="644" overflow="hidden"><defs><linearGradient id="vg4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5cf0"/><stop offset="0.55" stop-color="#c62ee0"/><stop offset="1" stop-color="#ff3b6b"/></linearGradient></defs><rect x="0" y="0" width="382" height="644" fill="url(#vg4)"/><rect x="153.0" y="292.0" width="76" height="60" rx="8" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="5"/><line x1="169.0" y1="292.0" x2="169.0" y2="352.0" stroke="#fff" stroke-opacity="0.45" stroke-width="4"/><line x1="213.0" y1="292.0" x2="213.0" y2="352.0" stroke="#fff" stroke-opacity="0.45" stroke-width="4"/></svg><rect class="tag-bg-s" x="12" y="12" width="141" height="34" rx="17"/><text class="tag" x="82.5" y="36" text-anchor="middle">secondary</text><svg x="16" y="464" width="350" height="164" overflow="hidden"><rect x="0" y="0" width="350" height="164" rx="16" fill="#000" fill-opacity="0.5"/><line x1="24" y1="72" x2="326" y2="72" stroke="#fff" stroke-opacity="0.3" stroke-width="6" stroke-linecap="round"/><line x1="24" y1="72" x2="114.6" y2="72" stroke="#fff" stroke-width="6" stroke-linecap="round"/><rect x="98.6" y="62" width="32" height="20" rx="10" fill="#fff"/><circle cx="95.0" cy="128" r="14" fill="none" stroke="#fff" stroke-width="3"/><path d="M165.0 110 L191.0 128 L165.0 146 Z" fill="#fff"/><circle cx="255.0" cy="128" r="14" fill="none" stroke="#fff" stroke-width="3"/></svg><rect class="tag-bg-p" x="28" y="476" width="115" height="34" rx="17"/><text class="tag" x="85.5" y="500" text-anchor="middle">primary</text></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 971 1 0"><div class="fig-title">半開き</div><svg viewBox="-10 -10 971 689" role="img" aria-label="半開き: 動画が左、操作パネルが右の下端"><defs><clipPath id="arrclip7"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs><g clip-path="url(#arrclip7)"><rect class="edge" x="0" y="0" width="951" height="669" rx="0"/><rect class="screen" x="0" y="0" width="867" height="635" rx="0"/><svg x="0" y="0" width="455.5" height="635" overflow="hidden"><defs><linearGradient id="vg6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5cf0"/><stop offset="0.55" stop-color="#c62ee0"/><stop offset="1" stop-color="#ff3b6b"/></linearGradient></defs><rect x="0" y="0" width="455.5" height="635" fill="url(#vg6)"/><rect x="189.75" y="287.5" width="76" height="60" rx="8" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="5"/><line x1="205.75" y1="287.5" x2="205.75" y2="347.5" stroke="#fff" stroke-opacity="0.45" stroke-width="4"/><line x1="249.75" y1="287.5" x2="249.75" y2="347.5" stroke="#fff" stroke-opacity="0.45" stroke-width="4"/></svg><rect class="tag-bg-s" x="12" y="12" width="141" height="34" rx="17"/><text class="tag" x="82.5" y="36" text-anchor="middle">secondary</text><svg x="511.5" y="455" width="339.5" height="164" overflow="hidden"><rect x="0" y="0" width="339.5" height="164" rx="16" fill="#000" fill-opacity="0.5"/><line x1="24" y1="72" x2="315.5" y2="72" stroke="#fff" stroke-opacity="0.3" stroke-width="6" stroke-linecap="round"/><line x1="24" y1="72" x2="111.45" y2="72" stroke="#fff" stroke-width="6" stroke-linecap="round"/><rect x="95.45" y="62" width="32" height="20" rx="10" fill="#fff"/><circle cx="89.75" cy="128" r="14" fill="none" stroke="#fff" stroke-width="3"/><path d="M159.75 110 L185.75 128 L159.75 146 Z" fill="#fff"/><circle cx="249.75" cy="128" r="14" fill="none" stroke="#fff" stroke-width="3"/></svg><rect class="tag-bg-p" x="523.5" y="467" width="115" height="34" rx="17"/><text class="tag" x="581.0" y="491" text-anchor="middle">primary</text><rect class="div-band" x="455.5" y="0" width="40.0" height="669" rx="0"/></g><rect class="outline" x="0" y="0" width="951" height="669" rx="36"/></svg></figure><figure style="flex: 971 1 0"><div class="fig-title">平らに開いた状態</div><svg viewBox="-10 -10 971 689" role="img" aria-label="平らに開いた状態: 動画の下端に操作パネルが重なる"><defs><clipPath id="arrclip9"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs><g clip-path="url(#arrclip9)"><rect class="edge" x="0" y="0" width="951" height="669" rx="0"/><rect class="screen" x="0" y="0" width="867" height="635" rx="0"/><svg x="0" y="0" width="867" height="635" overflow="hidden"><defs><linearGradient id="vg8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b5cf0"/><stop offset="0.55" stop-color="#c62ee0"/><stop offset="1" stop-color="#ff3b6b"/></linearGradient></defs><rect x="0" y="0" width="867" height="635" fill="url(#vg8)"/><rect x="395.5" y="287.5" width="76" height="60" rx="8" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="5"/><line x1="411.5" y1="287.5" x2="411.5" y2="347.5" stroke="#fff" stroke-opacity="0.45" stroke-width="4"/><line x1="455.5" y1="287.5" x2="455.5" y2="347.5" stroke="#fff" stroke-opacity="0.45" stroke-width="4"/></svg><rect class="tag-bg-s" x="12" y="12" width="141" height="34" rx="17"/><text class="tag" x="82.5" y="36" text-anchor="middle">secondary</text><svg x="16" y="455" width="835" height="164" overflow="hidden"><rect x="0" y="0" width="835" height="164" rx="16" fill="#000" fill-opacity="0.5"/><line x1="24" y1="72" x2="811" y2="72" stroke="#fff" stroke-opacity="0.3" stroke-width="6" stroke-linecap="round"/><line x1="24" y1="72" x2="260.1" y2="72" stroke="#fff" stroke-width="6" stroke-linecap="round"/><rect x="244.10000000000002" y="62" width="32" height="20" rx="10" fill="#fff"/><circle cx="337.5" cy="128" r="14" fill="none" stroke="#fff" stroke-width="3"/><path d="M407.5 110 L433.5 128 L407.5 146 Z" fill="#fff"/><circle cx="497.5" cy="128" r="14" fill="none" stroke="#fff" stroke-width="3"/></svg><rect class="tag-bg-p" x="28" y="467" width="115" height="34" rx="17"/><text class="tag" x="85.5" y="491" text-anchor="middle">primary</text><line class="hinge" x1="475.5" y1="0" x2="475.5" y2="669"/></g><rect class="outline" x="0" y="0" width="951" height="669" rx="36"/></svg></figure></div><p class="arr-caption">閉じた状態と平らに開いた状態では、動画（secondary）の下端に操作パネル（primary）が重なります。半開きにすると動画が左の画面いっぱいに移り、操作パネルは右の画面の下端に置かれます。</p></div><div class="arr-row"><h4>Lyrics (split)</h4><div class="figs pair3"><figure style="flex: 486 1 0"><div class="fig-title">閉じた状態</div><svg viewBox="-10 -10 486 698" role="img" aria-label="閉じた状態: primary が上、secondary が下"><defs><clipPath id="arrclip11"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#arrclip11)"><rect class="edge" x="0" y="0" width="466" height="678" rx="0"/><rect class="screen" x="0" y="0" width="382" height="644" rx="0"/><svg x="0" y="0" width="382" height="322.0" overflow="hidden"><defs><linearGradient id="ag10" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset="1" stop-color="#ff9500"/></linearGradient></defs><rect x="138.0" y="62" width="106.0" height="106.0" rx="18" fill="url(#ag10)"/><text x="191.0" y="131.96" text-anchor="middle" font-size="47.7" fill="#fff">♪</text><text x="191.0" y="212.0" text-anchor="middle" class="mock-song">Sample Song</text><text x="191.0" y="244.0" text-anchor="middle" class="mock-artist">Sample Artist</text><text x="191.0" y="294.0" text-anchor="middle" class="mock-song" letter-spacing="18">◀◀ ❚❚ ▶▶</text></svg><rect class="tag-bg-p" x="12" y="12" width="115" height="34" rx="17"/><text class="tag" x="69.5" y="36" text-anchor="middle">primary</text><svg x="0" y="322.0" width="382" height="322.0" overflow="hidden"><rect class="lyrics-bg" x="0" y="0" width="382" height="322.0"/><text class="mock-lyric" x="22" y="96">Morning light taps on the</text><text class="mock-lyric" x="22" y="128">window</text><text class="mock-lyric" x="22" y="172">Walking through a sleepy</text><text class="mock-lyric" x="22" y="204">town</text><text class="mock-lyric now" x="22" y="248">A view that opens past</text><text class="mock-lyric now" x="22" y="280">the hinge</text><text class="mock-lyric" x="22" y="324">One screen turning into</text><text class="mock-lyric" x="22" y="356">two</text><text class="mock-lyric" x="22" y="400">Open, close, and open</text><text class="mock-lyric" x="22" y="432">again</text><text class="mock-lyric" x="22" y="476">Things unseen come into</text><text class="mock-lyric" x="22" y="508">view</text><text class="mock-lyric" x="22" y="552">Words on the left, melody</text><text class="mock-lyric" x="22" y="584">on the right</text><text class="mock-lyric" x="22" y="628">Still playing somewhere</text><text class="mock-lyric" x="22" y="660">today</text></svg><rect class="tag-bg-s" x="12" y="334.0" width="141" height="34" rx="17"/><text class="tag" x="82.5" y="358.0" text-anchor="middle">secondary</text></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 971 1 0"><div class="fig-title">半開き</div><svg viewBox="-10 -10 971 689" role="img" aria-label="半開き: ヒンジを避けて primary が左、secondary が右"><defs><clipPath id="arrclip13"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs><g clip-path="url(#arrclip13)"><rect class="edge" x="0" y="0" width="951" height="669" rx="0"/><rect class="screen" x="0" y="0" width="867" height="635" rx="0"/><svg x="0" y="0" width="455.5" height="635" overflow="hidden"><defs><linearGradient id="ag12" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset="1" stop-color="#ff9500"/></linearGradient></defs><rect x="113.875" y="128.625" width="227.75" height="227.75" rx="18" fill="url(#ag12)"/><text x="227.75" y="278.94" text-anchor="middle" font-size="102.4875" fill="#fff">♪</text><text x="227.75" y="400.375" text-anchor="middle" class="mock-song">Sample Song</text><text x="227.75" y="432.375" text-anchor="middle" class="mock-artist">Sample Artist</text><text x="227.75" y="482.375" text-anchor="middle" class="mock-song" letter-spacing="18">◀◀ ❚❚ ▶▶</text></svg><rect class="tag-bg-p" x="12" y="12" width="115" height="34" rx="17"/><text class="tag" x="69.5" y="36" text-anchor="middle">primary</text><svg x="495.5" y="0" width="371.5" height="635" overflow="hidden"><rect class="lyrics-bg" x="0" y="0" width="371.5" height="635"/><text class="mock-lyric" x="22" y="96">Morning light taps on</text><text class="mock-lyric" x="22" y="128">the window</text><text class="mock-lyric" x="22" y="172">Walking through a sleepy</text><text class="mock-lyric" x="22" y="204">town</text><text class="mock-lyric now" x="22" y="248">A view that opens past</text><text class="mock-lyric now" x="22" y="280">the hinge</text><text class="mock-lyric" x="22" y="324">One screen turning into</text><text class="mock-lyric" x="22" y="356">two</text><text class="mock-lyric" x="22" y="400">Open, close, and open</text><text class="mock-lyric" x="22" y="432">again</text><text class="mock-lyric" x="22" y="476">Things unseen come into</text><text class="mock-lyric" x="22" y="508">view</text><text class="mock-lyric" x="22" y="552">Words on the left,</text><text class="mock-lyric" x="22" y="584">melody on the right</text><text class="mock-lyric" x="22" y="628">Still playing somewhere</text><text class="mock-lyric" x="22" y="660">today</text></svg><rect class="tag-bg-s" x="507.5" y="12" width="141" height="34" rx="17"/><text class="tag" x="578.0" y="36" text-anchor="middle">secondary</text><rect class="div-band" x="455.5" y="0" width="40.0" height="669" rx="0"/></g><rect class="outline" x="0" y="0" width="951" height="669" rx="36"/></svg></figure><figure style="flex: 971 1 0"><div class="fig-title">平らに開いた状態</div><svg viewBox="-10 -10 971 689" role="img" aria-label="平らに開いた状態: セーフエリアを半分ずつ"><defs><clipPath id="arrclip15"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs><g clip-path="url(#arrclip15)"><rect class="edge" x="0" y="0" width="951" height="669" rx="0"/><rect class="screen" x="0" y="0" width="867" height="635" rx="0"/><svg x="0" y="0" width="433.5" height="635" overflow="hidden"><defs><linearGradient id="ag14" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff2d55"/><stop offset="1" stop-color="#ff9500"/></linearGradient></defs><rect x="108.375" y="134.125" width="216.75" height="216.75" rx="18" fill="url(#ag14)"/><text x="216.75" y="277.18" text-anchor="middle" font-size="97.53750000000001" fill="#fff">♪</text><text x="216.75" y="394.875" text-anchor="middle" class="mock-song">Sample Song</text><text x="216.75" y="426.875" text-anchor="middle" class="mock-artist">Sample Artist</text><text x="216.75" y="476.875" text-anchor="middle" class="mock-song" letter-spacing="18">◀◀ ❚❚ ▶▶</text></svg><rect class="tag-bg-p" x="12" y="12" width="115" height="34" rx="17"/><text class="tag" x="69.5" y="36" text-anchor="middle">primary</text><svg x="433.5" y="0" width="433.5" height="635" overflow="hidden"><rect class="lyrics-bg" x="0" y="0" width="433.5" height="635"/><text class="mock-lyric" x="22" y="96">Morning light taps on the</text><text class="mock-lyric" x="22" y="128">window</text><text class="mock-lyric" x="22" y="172">Walking through a sleepy</text><text class="mock-lyric" x="22" y="204">town</text><text class="mock-lyric now" x="22" y="248">A view that opens past the</text><text class="mock-lyric now" x="22" y="280">hinge</text><text class="mock-lyric" x="22" y="324">One screen turning into two</text><text class="mock-lyric" x="22" y="368">Open, close, and open again</text><text class="mock-lyric" x="22" y="412">Things unseen come into view</text><text class="mock-lyric" x="22" y="456">Words on the left, melody on</text><text class="mock-lyric" x="22" y="488">the right</text><text class="mock-lyric" x="22" y="532">Still playing somewhere</text><text class="mock-lyric" x="22" y="564">today</text></svg><rect class="tag-bg-s" x="445.5" y="12" width="141" height="34" rx="17"/><text class="tag" x="516.0" y="36" text-anchor="middle">secondary</text><line class="hinge" x1="475.5" y1="0" x2="475.5" y2="669"/></g><rect class="outline" x="0" y="0" width="951" height="669" rx="36"/></svg></figure></div><p class="arr-caption">閉じた状態では上下に分かれ、primary が上に来ます。半開きにするとヒンジの領域を避けて左右に分かれます（primary が左 0〜455.5pt、secondary が右 495.5〜867pt）。平らに開くとヒンジに関係なくセーフエリアを半分に分け、境目は 433.5pt になります。</p></div>
+  </div>
+  <div class="block">
+    <h3>コード</h3>
+    <div class="code"><pre><code class="language-swift">// Basic: スライドと同じ最小構成
+ArrangementView {
+    LabeledPane(title: &quot;Primary View&quot;, color: .red)
+} secondary: {
+    LabeledPane(title: &quot;Secondary View&quot;, color: .blue)
+}
+.arrangementViewStyle(.overlay)
+
+// Player: 公式ドキュメントの overlay の例
+ArrangementView {
+    PlayerControls()
+} secondary: {
+    VideoSurface()
+}
+.arrangementViewStyle(.overlay)
+
+// Lyrics: 公式ドキュメントの split の例
+ArrangementView {
+    NowPlayingView()
+} secondary: {
+    LyricsView()
+}
+.arrangementViewStyle(.split)</code></pre></div>
+    <p>関連する modifier として、子の View に付けて「横並びに切り替わるときにどちらの辺へ寄せるか」を指定する <code>.overlayArrangementEdge(.top / .bottom)</code> や、分割の比率を指定する <a class="doc" href="https://developer.apple.com/documentation/swiftui/view/splitarrangementlayoutratio(_:)" target="_blank" rel="noopener"><code>.splitArrangementLayoutRatio(_:)</code></a> もあります。このサンプルでは使っていません。</p>
+    <details class="full"><summary>全文を表示</summary><div class="code"><pre><code class="language-swift">import SwiftUI
+
+struct ArrangementSampleView: View {
+    enum Sample: String, CaseIterable, Identifiable {
+        case basic = &quot;Basic (overlay)&quot;
+        case mediaPlayer = &quot;Player (overlay)&quot;
+        case lyrics = &quot;Lyrics (split)&quot;
+
+        var id: Self { self }
+    }
+
+    @State private var sample: Sample = .basic
+
+    var body: some View {
+        Group {
+            switch sample {
+            case .basic:
+                ArrangementView {
+                    LabeledPane(title: &quot;Primary View&quot;, color: .red)
+                } secondary: {
+                    LabeledPane(title: &quot;Secondary View&quot;, color: .blue)
+                }
+                .arrangementViewStyle(.overlay)
+            case .mediaPlayer:
+                ArrangementView {
+                    PlayerControls()
+                } secondary: {
+                    VideoSurface()
+                }
+                .arrangementViewStyle(.overlay)
+            case .lyrics:
+                ArrangementView {
+                    NowPlayingView()
+                } secondary: {
+                    LyricsView()
+                }
+                .arrangementViewStyle(.split)
+            }
+        }
+        .safeAreaInset(edge: .top) {
+            Picker(&quot;Sample&quot;, selection: $sample) {
+                ForEach(Sample.allCases) { sample in
+                    Text(sample.rawValue).tag(sample)
+                }
+            }
+            .pickerStyle(.segmented)
+            .fixedSize()
+            .padding(8)
+        }
+    }
+}
+
+private struct LabeledPane: View {
+    let title: String
+    let color: Color
+
+    var body: some View {
+        Text(title)
+            .font(.title2.bold())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(color)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(color.opacity(0.1), ignoresSafeAreaEdges: [])
+    }
+}
+
+private struct VideoSurface: View {
+    var body: some View {
+        LinearGradient(colors: [.indigo, .purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay {
+                Image(systemName: &quot;film&quot;)
+                    .font(.system(size: 64))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+    }
+}
+
+private struct PlayerControls: View {
+    @State private var isPlaying = false
+    @State private var progress = 0.3
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text(&quot;Sample Movie&quot;)
+                .font(.headline)
+            Slider(value: $progress)
+            HStack(spacing: 40) {
+                Button(&quot;Back&quot;, systemImage: &quot;gobackward.10&quot;) {
+                    progress = max(progress - 0.1, 0)
+                }
+                Button(isPlaying ? &quot;Pause&quot; : &quot;Play&quot;, systemImage: isPlaying ? &quot;pause.fill&quot; : &quot;play.fill&quot;) {
+                    isPlaying.toggle()
+                }
+                .font(.largeTitle)
+                Button(&quot;Forward&quot;, systemImage: &quot;goforward.10&quot;) {
+                    progress = min(progress + 0.1, 1)
+                }
+            }
+            .labelStyle(.iconOnly)
+            .font(.title2)
+        }
+        .foregroundStyle(.white)
+        .tint(.white)
+        .padding()
+        .background(.black.opacity(0.5), in: .rect(cornerRadius: 16))
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+}
+
+private struct NowPlayingView: View {
+    @State private var isPlaying = true
+
+    var body: some View {
+        VStack(spacing: 16) {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(LinearGradient(colors: [.pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: 240)
+                .overlay {
+                    Image(systemName: &quot;music.note&quot;)
+                        .font(.system(size: 64))
+                        .foregroundStyle(.white)
+                }
+            VStack(spacing: 4) {
+                Text(&quot;Sample Song&quot;)
+                    .font(.title2.bold())
+                Text(&quot;Sample Artist&quot;)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 40) {
+                Button(&quot;Previous&quot;, systemImage: &quot;backward.fill&quot;) {}
+                Button(isPlaying ? &quot;Pause&quot; : &quot;Play&quot;, systemImage: isPlaying ? &quot;pause.fill&quot; : &quot;play.fill&quot;) {
+                    isPlaying.toggle()
+                }
+                .font(.largeTitle)
+                Button(&quot;Next&quot;, systemImage: &quot;forward.fill&quot;) {}
+            }
+            .labelStyle(.iconOnly)
+            .font(.title2)
+            .tint(.primary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct LyricsView: View {
+    private let lines = [
+        &quot;Morning light taps on the window&quot;,
+        &quot;Walking through a sleepy town&quot;,
+        &quot;A view that opens past the hinge&quot;,
+        &quot;One screen turning into two&quot;,
+        &quot;Open, close, and open again&quot;,
+        &quot;Things unseen come into view&quot;,
+        &quot;Words on the left, melody on the right&quot;,
+        &quot;Still playing somewhere today&quot;,
+    ]
+    private let currentIndex = 2
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(lines.indices, id: \.self) { index in
+                    Text(lines[index])
+                        .font(.title3.bold())
+                        .foregroundStyle(index == currentIndex ? .primary : .tertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .background(Color(.secondarySystemBackground), ignoresSafeAreaEdges: [])
+    }
+}
+
+#Preview {
+    ArrangementSampleView()
+}</code></pre></div></details>
+  </div>
+</section>
+
+<section class="tab" id="regions">
+  <div class="tab-head">
+    <div class="eyebrow">04 · Regions</div>
+    <h2>予約領域（Reserved Regions）を描く</h2>
+  </div>
+  <div class="block">
+    <h3>概要</h3>
+    <p>ヒンジの折り目やカメラなど、ハードウェアに隠される画面上の領域を取得します。取得できる種類は 2 つです。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>kind</th><th>意味</th></tr></thead>
+        <tbody>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/reservedregion/kind-swift.struct/division" target="_blank" rel="noopener"><code>.division</code></a></td><td>コンテンツを 2 つに分けるべき領域。ヒンジの折り目</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/reservedregion/kind-swift.struct/occlusion" target="_blank" rel="noopener"><code>.occlusion</code></a></td><td>何かに遮られる領域。Dynamic Island、カメラ、ウィンドウの操作ボタンなどの総称で、どれにあたるかは API からは分からない</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>各領域は位置とサイズ（<code>frame</code>）、余白（<code>margins</code>）、有効かどうか（<a class="doc" href="https://developer.apple.com/documentation/swiftui/reservedregion/isactive" target="_blank" rel="noopener"><code>isActive</code></a>）を持ちます。<a class="doc" href="https://developer.apple.com/documentation/swiftui/reservedregion/isactive" target="_blank" rel="noopener"><code>isActive</code></a> は読み取り専用で、アプリから切り替える API はありません。<a class="doc" href="https://developer.apple.com/documentation/swiftui/reservedregion/queryoptions/includeinactive" target="_blank" rel="noopener"><code>.includeInactive</code></a> を付けると、今は有効でない領域も取得できます。</p>
+  </div>
+  <div class="block">
+    <h3>動き</h3>
+    <ul class="points">
+      <li>取得した領域を実際の位置に重ねて描きます。ヒンジは赤、occlusion は取得順に青・緑・オレンジ・紫です。</li>
+      <li>有効な領域は半透明で塗り、無効な領域は点線の枠だけにします。</li>
+      <li>中央のカードに、各領域の種類、active / inactive、位置とサイズを一覧で出します。</li>
+    </ul>
+    <div class="figs pair">
+      <figure>
+        <div class="fig-title">開いた状態（横向き）</div>
+        <svg viewBox="-20 -20 991 718" role="img" aria-label="開いた状態の予約領域">
+          <defs><clipPath id="clip4"><rect x="0" y="0" width="951" height="669" rx="36"/></clipPath></defs>
+          <rect class="screen" x="0" y="0" width="951" height="669" rx="36"/>
+          <g clip-path="url(#clip4)">
+          <rect class="div-in" x="455.5" y="0" width="40" height="669"/>
+          <rect class="occ1-in" x="677.3" y="21" width="58" height="37"/>
+          <rect class="occ2-on" x="867" y="0" width="84" height="120"/>
+          </g>
+          <rect class="outline" x="0" y="0" width="951" height="669" rx="36"/>
+          <text class="t-win" x="260" y="340">division</text>
+          <text class="t-safe" x="600" y="100">occlusion 1</text>
+          <text class="t-status" x="700" y="160">occlusion 2</text>
+        </svg>
+        <figcaption>平らなのでヒンジは inactive です。active な occlusion 2 は時間と Wi-Fi の列で、カメラではありません。</figcaption>
+      </figure>
+      <figure>
+        <div class="fig-title">閉じた状態</div>
+        <svg viewBox="-20 -20 506 718" role="img" aria-label="閉じた状態の予約領域">
+          <defs><clipPath id="clip5"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs>
+          <rect class="screen" x="0" y="0" width="466" height="678" rx="36"/>
+          <g clip-path="url(#clip5)">
+          <rect class="occ2-on" x="382" y="0" width="84" height="170"/>
+          <rect class="occ1-on" x="399.7" y="29.3" width="37" height="37"/>
+          </g>
+          <rect class="outline" x="0" y="0" width="466" height="678" rx="36"/>
+          <text class="t-safe" x="130" y="60">occlusion 1</text>
+          <text class="t-status" x="170" y="230">occlusion 2</text>
+        </svg>
+        <figcaption>occlusion 1 は画面右上の前面カメラ（パンチホール）に重なります。occlusion 2 はカメラと時間・Wi-Fi をまとめて囲む列です。</figcaption>
+      </figure>
+    </div>
+    <div class="legend"><span><i style="background: var(--window)"></i>division</span><span><i style="background: var(--safe)"></i>occlusion 1</span><span><i style="background: var(--status)"></i>occlusion 2</span><span>塗り = active / 点線 = inactive</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>状態</th><th>領域</th><th>active</th><th>frame（x, y, 幅 × 高さ）</th><th>画面上の実体</th></tr></thead>
+        <tbody>
+          <tr><td>開いた</td><td>division</td><td>inactive</td><td class="num">455.5, 0, 40 × 669</td><td>ヒンジの折り目</td></tr>
+          <tr><td>開いた</td><td>occlusion 1</td><td>inactive</td><td class="num">677.3, 21, 58 × 37</td><td>画面上に対応するものは見当たらない</td></tr>
+          <tr><td>開いた</td><td>occlusion 2</td><td>active</td><td class="num">867, 0, 84 × 120</td><td>時間と Wi-Fi の列</td></tr>
+          <tr><td>閉じた</td><td>occlusion 1</td><td>active</td><td class="num">399.7, 29.3, 37 × 37</td><td>前面カメラ</td></tr>
+          <tr><td>閉じた</td><td>occlusion 2</td><td>active</td><td class="num">382, 0, 84 × 170</td><td>カメラと時間・Wi-Fi の列</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">occlusion の列の幅 84pt は、タブ 2 で見た右側のセーフエリアの余白 84pt と一致します。ステータスバーとタブバーが、この列に寄せて置かれていると考えられます（数値の一致からの推測です）。</p>
+  </div>
+  <div class="block">
+    <h3>コード</h3>
+    <p>領域の <code>frame</code> は画面全体を基準にした座標で返るので、<a class="doc" href="https://developer.apple.com/documentation/swiftui/geometryreader" target="_blank" rel="noopener"><code>GeometryReader</code></a> に <code>.ignoresSafeArea()</code> を付けて同じ座標で描きます。</p>
+    <div class="code"><pre><code class="language-swift">GeometryReader { proxy in
+    let divisions = proxy.reservedRegions(kind: .division, options: .includeInactive)
+    let occlusions = proxy.reservedRegions(kind: .occlusion, options: .includeInactive)
+
+    ZStack {
+        ForEach(entries) { entry in
+            regionShape(entry)   // active は塗り、inactive は点線
+                .frame(width: entry.region.frame.width, height: entry.region.frame.height)
+                .position(x: entry.region.frame.midX, y: entry.region.frame.midY)
+        }
+        regionList(entries)
+    }
+}
+// 領域の frame を画面全体の座標で扱うため
+.ignoresSafeArea()</code></pre></div>
+    <details class="full"><summary>全文を表示</summary><div class="code"><pre><code class="language-swift">import SwiftUI
+
+struct ReservedRegionsView: View {
+    private struct Entry: Identifiable {
+        let region: ReservedRegion
+        let name: String
+        let color: Color
+
+        var id: ReservedRegion.ID { region.id }
+    }
+
+    private static let occlusionColors: [Color] = [.blue, .green, .orange, .purple]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let regions = entries(
+                divisions: proxy.reservedRegions(kind: .division, options: .includeInactive),
+                occlusions: proxy.reservedRegions(kind: .occlusion, options: .includeInactive)
+            )
+
+            ZStack {
+                ForEach(regions) { entry in
+                    regionShape(entry)
+                        .frame(width: entry.region.frame.width, height: entry.region.frame.height)
+                        .position(x: entry.region.frame.midX, y: entry.region.frame.midY)
+                }
+
+                regionList(regions)
+            }
+        }
+        // occlusion はカメラやステータス表示など画面端にあるため、座標系を画面全体に合わせる
+        .ignoresSafeArea()
+    }
+
+    private func entries(divisions: [ReservedRegion], occlusions: [ReservedRegion]) -&gt; [Entry] {
+        let hinges = divisions.map { Entry(region: $0, name: &quot;division (hinge)&quot;, color: .red) }
+        let occluded = occlusions.enumerated().map { index, region in
+            Entry(
+                region: region,
+                name: &quot;occlusion \(index + 1)&quot;,
+                color: Self.occlusionColors[index % Self.occlusionColors.count]
+            )
+        }
+        return hinges + occluded
+    }
+
+    @ViewBuilder
+    private func regionShape(_ entry: Entry) -&gt; some View {
+        if entry.region.isActive {
+            Rectangle()
+                .fill(entry.color.opacity(0.6))
+        } else {
+            Rectangle()
+                .strokeBorder(entry.color, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+        }
+    }
+
+    private func regionList(_ regions: [Entry]) -&gt; some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(&quot;Reserved Regions&quot;)
+                .font(.largeTitle.bold())
+            if regions.isEmpty {
+                Text(&quot;None&quot;)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(regions) { entry in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Circle()
+                            .fill(entry.color)
+                            .frame(width: 16, height: 16)
+                        Text(entry.name)
+                            .font(.title2.bold())
+                        Text(entry.region.isActive ? &quot;active&quot; : &quot;inactive&quot;)
+                            .font(.headline)
+                            .foregroundStyle(entry.region.isActive ? .primary : .secondary)
+                    }
+                    Text(describe(entry.region.frame))
+                        .font(.body)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            legend
+        }
+        .minimumScaleFactor(0.7)
+        .padding(24)
+        .background(.regularMaterial, in: .rect(cornerRadius: 20))
+        .padding()
+    }
+
+    private var legend: some View {
+        HStack(spacing: 20) {
+            Label(&quot;active&quot;, systemImage: &quot;square.fill&quot;)
+            Label(&quot;inactive&quot;, systemImage: &quot;square.dashed&quot;)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+    }
+
+    private func describe(_ frame: CGRect) -&gt; String {
+        func format(_ value: CGFloat) -&gt; String {
+            Double(value).formatted(.number.precision(.fractionLength(0...1)))
+        }
+        return &quot;x: \(format(frame.minX)), y: \(format(frame.minY)), \(format(frame.width)) × \(format(frame.height))&quot;
+    }
+}
+
+#Preview {
+    ReservedRegionsView()
+}</code></pre></div></details>
+  </div>
+</section>
+
+<section class="tab" id="toolbar">
+  <div class="tab-head">
+    <div class="eyebrow">05 · Toolbar</div>
+    <h2>縦のバーでのツールバー項目を比べる</h2>
+  </div>
+  <div class="block">
+    <h3>概要</h3>
+    <p>iPhone Duo を横向きに開くと、タブバーが右端に縦に並びます。ツールバーも縦のバーに移ることがあり、項目ごとの扱いを細かく指定できます。同じ見た目のボタンを設定違いで並べて、違いを見比べます。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>API</th><th>指定できること</th></tr></thead>
+        <tbody>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/toolbarcontent/axisbehavior(_:)" target="_blank" rel="noopener"><code>.axisBehavior(_:)</code></a></td><td>項目を置けるバーの向き。<code>.automatic</code>（おまかせ）、<code>.horizontalOnly</code>（横のバーだけ）、<code>.verticalPreferred</code>（縦のバーを優先）</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/toolbarcontent/visibilitypriority(_:)" target="_blank" rel="noopener"><code>.visibilityPriority(_:)</code></a></td><td>バーに入りきらないとき、どの項目を先にあふれメニューへ送るか。<code>.high</code> / <code>.low</code></td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/toolbaritemplacement/topbarpinnedtrailing" target="_blank" rel="noopener"><code>placement: .topBarPinnedTrailing</code></a></td><td>縦のバーでも端に固定しておく項目</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/toolbaroverflowmenu" target="_blank" rel="noopener"><code>ToolbarOverflowMenu</code></a></td><td>あふれメニューに自分で項目を足す</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/view/toolbarverticalbehavior(_:)" target="_blank" rel="noopener"><code>.toolbarVerticalBehavior(_:)</code></a></td><td>縦のバーへの移動を許すか（<code>.automatic</code> / <code>.disabled</code>）</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/view/toolbarverticalcompressionbehavior(_:)" target="_blank" rel="noopener"><code>.toolbarVerticalCompressionBehavior(_:)</code></a></td><td>場所が足りないとき、ツールバーとタブバーのどちらを優先して残すか</td></tr>
+          <tr><td><a class="doc" href="https://developer.apple.com/documentation/swiftui/environmentvalues/toolbarverticaledge" target="_blank" rel="noopener"><code>\.toolbarVerticalEdge</code></a></td><td>縦のバーが左右どちらの端にあるか（Environment の値）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="block">
+    <h3>動き</h3>
+    <p>画面には、Status（縦のバーの位置と最後にタップしたボタン）、Settings（縦のバーへの移動のオン／オフと Compression の切り替え）、Items（各ボタンの設定の一覧）を並べています。ツールバーの項目がどこに置かれたかを、シミュレータのスクリーンショットをもとに図にしました。</p>
+    <div class="legend tb-legend"><span>A = <code>.axisBehavior(.automatic)</code></span><span>↔ = <code>.horizontalOnly</code></span><span>↕ = <code>.verticalPreferred</code></span><span>Share = <code>.visibilityPriority(.high)</code></span><span>Delete（ごみ箱）= <code>.visibilityPriority(.low)</code></span><span>✓ = <code>.topBarPinnedTrailing</code></span><span>··· = あふれメニュー</span><span>四角のアイコンの列 = タブバー（青が選択中のタブ）</span></div><div class="arr-row"><h4>閉じた状態での比較（Compression: automatic）</h4><div class="figs compact"><figure style="flex: 1 1 0"><div class="fig-title">Vertical toolbar オン</div><svg viewBox="-10 -10 486 698" role="img" aria-label="閉じた状態・縦のバーあり"><defs><clipPath id="tbclip16"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#tbclip16)"><rect class="tb-bg" x="0" y="0" width="466" height="678" rx="0"/><text class="tb-title" x="20" y="60">Toolbar</text><rect class="card" x="20" y="123" width="361" height="103" rx="14"/><rect class="card" x="20" y="285" width="361" height="104" rx="14"/><rect class="card" x="20" y="447" width="361" height="253" rx="14"/><circle class="bar" cx="357" cy="48" r="24"/><text class="ico-text" x="357" y="56" text-anchor="middle" font-size="24">↔</text><text class="tb-time" x="418" y="90" text-anchor="middle">21:24</text><path class="ico-line" d="M404 116 a20 20 0 0 1 28 0 M410 122 a11 11 0 0 1 16 0"/><circle class="ico-fill" cx="418" cy="127" r="2.6"/><circle class="bar" cx="418" cy="195" r="24"/><path class="ico-line" d="M409 195 L415 202 L428 186"/><rect class="bar" x="394.0" y="230" width="48" height="101.5" rx="24.0"/><path class="ico-line" d="M411 252.0 H408 V266.0 H428 V252.0 H425"/><path class="ico-line" d="M418 259.0 V243.0 M413 248.0 L418 243.0 L423 248.0"/><circle class="ico-fill" cx="410" cy="306.5" r="2.6"/><circle class="ico-fill" cx="418" cy="306.5" r="2.6"/><circle class="ico-fill" cx="426" cy="306.5" r="2.6"/><rect class="bar" x="394.0" y="394" width="48" height="258" rx="24.0"/><rect class="ico-line" x="408" y="416" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="464" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="513" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="564" width="20" height="16" rx="3"/><rect class="ico-accent" x="408" y="614" width="20" height="16" rx="3"/></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 1 1 0"><div class="fig-title">Vertical toolbar オフ</div><svg viewBox="-10 -10 486 698" role="img" aria-label="閉じた状態・縦のバーなし"><defs><clipPath id="tbclip17"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#tbclip17)"><rect class="tb-bg" x="0" y="0" width="466" height="678" rx="0"/><rect class="card" x="20" y="123" width="424" height="103" rx="14"/><rect class="card" x="20" y="285" width="424" height="104" rx="14"/><rect class="card" x="20" y="447" width="424" height="253" rx="14"/><rect class="bar" x="60" y="24.0" width="216" height="48" rx="24.0"/><circle class="ico-line" cx="84" cy="48" r="11"/><text class="ico-text" x="84" y="54" text-anchor="middle" font-size="15">A</text><path class="ico-line" d="M132 45 H129 V59 H149 V45 H146"/><path class="ico-line" d="M139 52 V36 M134 41 L139 36 L144 41"/><circle class="ico-fill" cx="187" cy="48" r="2.6"/><circle class="ico-fill" cx="195" cy="48" r="2.6"/><circle class="ico-fill" cx="203" cy="48" r="2.6"/><path class="ico-line" d="M242 48 L248 55 L261 39"/><text class="tb-time" x="310" y="56" text-anchor="middle">21:24</text><rect class="bar" x="21" y="597.0" width="423" height="58" rx="29.0"/><rect class="ico-line" x="56" y="612" width="20" height="16" rx="3"/><rect class="tab-label" x="48" y="636" width="36" height="5" rx="2.5"/><rect class="ico-line" x="144" y="612" width="20" height="16" rx="3"/><rect class="tab-label" x="136" y="636" width="36" height="5" rx="2.5"/><rect class="ico-line" x="222" y="612" width="20" height="16" rx="3"/><rect class="tab-label" x="214" y="636" width="36" height="5" rx="2.5"/><rect class="ico-line" x="301" y="612" width="20" height="16" rx="3"/><rect class="tab-label" x="293" y="636" width="36" height="5" rx="2.5"/><rect class="ico-accent" x="382" y="612" width="20" height="16" rx="3"/><rect class="tab-label" x="374" y="636" width="36" height="5" rx="2.5"/></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure></div><p class="arr-caption"><b>オン</b>: ツールバーは右端の縦のバーに移り、Vertical edge は trailing になります。<code>.horizontalOnly</code> の ↔ は縦のバーに入らず、上部に単独のボタンとして残ります。<code>.topBarPinnedTrailing</code> の Done（✓）は、縦のバーの先頭に独立して固定されます。縦のバーのグループに入るのは Share（<code>.high</code>）と ··· だけで、A、↕、Delete（<code>.low</code>）はあふれメニューに回りました。開いた状態では、これに A（<code>.automatic</code>）も加わります。<br><b>オフ</b>（<code>.toolbarVerticalBehavior(.disabled)</code>）: ツールバーは上部の横のバーに戻り、Vertical edge は none になります。タブバーも縦のバーをやめて、画面下の横並びに移りました。横のバーに並ぶのは A、Share、···、Done の 4 つで、↔ も含めた残りはあふれメニューに回りました。開いた状態では 7 項目すべてが並びます。</p></div><div class="arr-row"><h4>Compression の違い（閉じた状態、<code>.toolbarVerticalCompressionBehavior</code>）</h4><div class="figs compact"><figure style="flex: 1 1 0"><div class="fig-title">automatic</div><svg viewBox="-10 -10 486 698" role="img" aria-label="automatic"><defs><clipPath id="tbclip18"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#tbclip18)"><rect class="tb-bg" x="0" y="0" width="466" height="678" rx="0"/><text class="tb-title" x="20" y="60">Toolbar</text><rect class="card" x="20" y="123" width="361" height="103" rx="14"/><rect class="card" x="20" y="285" width="361" height="104" rx="14"/><rect class="card" x="20" y="447" width="361" height="253" rx="14"/><circle class="bar" cx="357" cy="48" r="24"/><text class="ico-text" x="357" y="56" text-anchor="middle" font-size="24">↔</text><text class="tb-time" x="418" y="90" text-anchor="middle">21:24</text><path class="ico-line" d="M404 116 a20 20 0 0 1 28 0 M410 122 a11 11 0 0 1 16 0"/><circle class="ico-fill" cx="418" cy="127" r="2.6"/><circle class="bar" cx="418" cy="195" r="24"/><path class="ico-line" d="M409 195 L415 202 L428 186"/><rect class="bar" x="394.0" y="230" width="48" height="101.5" rx="24.0"/><path class="ico-line" d="M411 252.0 H408 V266.0 H428 V252.0 H425"/><path class="ico-line" d="M418 259.0 V243.0 M413 248.0 L418 243.0 L423 248.0"/><circle class="ico-fill" cx="410" cy="306.5" r="2.6"/><circle class="ico-fill" cx="418" cy="306.5" r="2.6"/><circle class="ico-fill" cx="426" cy="306.5" r="2.6"/><rect class="bar" x="394.0" y="394" width="48" height="258" rx="24.0"/><rect class="ico-line" x="408" y="416" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="464" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="513" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="564" width="20" height="16" rx="3"/><rect class="ico-accent" x="408" y="614" width="20" height="16" rx="3"/></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 1 1 0"><div class="fig-title">prefersToolbarItems</div><svg viewBox="-10 -10 486 698" role="img" aria-label="prefersToolbarItems"><defs><clipPath id="tbclip19"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#tbclip19)"><rect class="tb-bg" x="0" y="0" width="466" height="678" rx="0"/><text class="tb-title" x="20" y="60">Toolbar</text><rect class="card" x="20" y="123" width="361" height="103" rx="14"/><rect class="card" x="20" y="285" width="361" height="104" rx="14"/><rect class="card" x="20" y="447" width="361" height="253" rx="14"/><circle class="bar" cx="357" cy="48" r="24"/><text class="ico-text" x="357" y="56" text-anchor="middle" font-size="24">↔</text><text class="tb-time" x="418" y="90" text-anchor="middle">21:24</text><path class="ico-line" d="M404 116 a20 20 0 0 1 28 0 M410 122 a11 11 0 0 1 16 0"/><circle class="ico-fill" cx="418" cy="127" r="2.6"/><circle class="bar" cx="418" cy="195" r="24"/><path class="ico-line" d="M409 195 L415 202 L428 186"/><rect class="bar" x="394.0" y="230" width="48" height="256.0" rx="24.0"/><circle class="ico-line" cx="418" cy="255.0" r="11"/><text class="ico-text" x="418" y="261.0" text-anchor="middle" font-size="15">A</text><text class="ico-text" x="418" y="314.5" text-anchor="middle" font-size="24">↕</text><path class="ico-line" d="M411 355.0 H408 V369.0 H428 V355.0 H425"/><path class="ico-line" d="M418 362.0 V346.0 M413 351.0 L418 346.0 L423 351.0"/><path class="ico-line" d="M407 402.5 H429 M414 402.5 V398.5 H422 V402.5"/><path class="ico-line" d="M410 402.5 L411 420.5 H425 L426 402.5"/><circle class="ico-fill" cx="410" cy="461.0" r="2.6"/><circle class="ico-fill" cx="418" cy="461.0" r="2.6"/><circle class="ico-fill" cx="426" cy="461.0" r="2.6"/><circle class="bar" cx="418" cy="630" r="24"/><rect class="ico-accent" x="408" y="622" width="20" height="16" rx="3"/></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 1 1 0"><div class="fig-title">prefersToolbarItems（長押し）</div><svg viewBox="-10 -10 486 698" role="img" aria-label="prefersToolbarItems: タブのボタンを長押し"><defs><clipPath id="tbclip20"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#tbclip20)"><rect class="tb-bg" x="0" y="0" width="466" height="678" rx="0"/><text class="tb-title" x="20" y="60">Toolbar</text><rect class="card" x="20" y="123" width="361" height="103" rx="14"/><rect class="card" x="20" y="285" width="361" height="104" rx="14"/><rect class="card" x="20" y="447" width="361" height="253" rx="14"/><circle class="bar" cx="357" cy="48" r="24"/><text class="ico-text" x="357" y="56" text-anchor="middle" font-size="24">↔</text><text class="tb-time" x="418" y="90" text-anchor="middle">21:24</text><path class="ico-line" d="M404 116 a20 20 0 0 1 28 0 M410 122 a11 11 0 0 1 16 0"/><circle class="ico-fill" cx="418" cy="127" r="2.6"/><circle class="bar" cx="418" cy="195" r="24"/><path class="ico-line" d="M409 195 L415 202 L428 186"/><rect class="bar" x="394.0" y="230" width="48" height="256.0" rx="24.0"/><circle class="ico-line" cx="418" cy="255.0" r="11"/><text class="ico-text" x="418" y="261.0" text-anchor="middle" font-size="15">A</text><text class="ico-text" x="418" y="314.5" text-anchor="middle" font-size="24">↕</text><path class="ico-line" d="M411 355.0 H408 V369.0 H428 V355.0 H425"/><path class="ico-line" d="M418 362.0 V346.0 M413 351.0 L418 346.0 L423 351.0"/><path class="ico-line" d="M407 402.5 H429 M414 402.5 V398.5 H422 V402.5"/><path class="ico-line" d="M410 402.5 L411 420.5 H425 L426 402.5"/><circle class="ico-fill" cx="410" cy="461.0" r="2.6"/><circle class="ico-fill" cx="418" cy="461.0" r="2.6"/><circle class="ico-fill" cx="426" cy="461.0" r="2.6"/><circle class="bar" cx="418" cy="630" r="24"/><rect class="ico-accent" x="408" y="622" width="20" height="16" rx="3"/><rect class="popover" x="366" y="381" width="88" height="276" rx="24"/><rect class="ico-line" x="400.0" y="395" width="20" height="16" rx="3"/><text class="pop-label" x="410.0" y="427" text-anchor="middle">Hinge</text><rect class="ico-line" x="400.0" y="446" width="20" height="16" rx="3"/><text class="pop-label" x="410.0" y="478" text-anchor="middle">Layout</text><rect class="ico-line" x="400.0" y="498" width="20" height="16" rx="3"/><text class="pop-label" x="410.0" y="530" text-anchor="middle">Arrangement</text><rect class="ico-line" x="400.0" y="551" width="20" height="16" rx="3"/><text class="pop-label" x="410.0" y="583" text-anchor="middle">Regions</text><rect class="pop-on" x="370" y="593" width="80" height="52" rx="20"/><rect class="ico-accent" x="400.0" y="605" width="20" height="16" rx="3"/><text class="pop-label on" x="410.0" y="637" text-anchor="middle">Toolbar</text></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure><figure style="flex: 1 1 0"><div class="fig-title">prefersTabBar</div><svg viewBox="-10 -10 486 698" role="img" aria-label="prefersTabBar"><defs><clipPath id="tbclip21"><rect x="0" y="0" width="466" height="678" rx="36"/></clipPath></defs><g clip-path="url(#tbclip21)"><rect class="tb-bg" x="0" y="0" width="466" height="678" rx="0"/><text class="tb-title" x="20" y="60">Toolbar</text><rect class="card" x="20" y="123" width="361" height="103" rx="14"/><rect class="card" x="20" y="285" width="361" height="104" rx="14"/><rect class="card" x="20" y="447" width="361" height="253" rx="14"/><circle class="bar" cx="357" cy="48" r="24"/><text class="ico-text" x="357" y="56" text-anchor="middle" font-size="24">↔</text><text class="tb-time" x="418" y="90" text-anchor="middle">21:24</text><path class="ico-line" d="M404 116 a20 20 0 0 1 28 0 M410 122 a11 11 0 0 1 16 0"/><circle class="ico-fill" cx="418" cy="127" r="2.6"/><circle class="bar" cx="418" cy="195" r="24"/><path class="ico-line" d="M409 195 L415 202 L428 186"/><rect class="bar" x="394.0" y="230" width="48" height="101.5" rx="24.0"/><path class="ico-line" d="M411 252.0 H408 V266.0 H428 V252.0 H425"/><path class="ico-line" d="M418 259.0 V243.0 M413 248.0 L418 243.0 L423 248.0"/><circle class="ico-fill" cx="410" cy="306.5" r="2.6"/><circle class="ico-fill" cx="418" cy="306.5" r="2.6"/><circle class="ico-fill" cx="426" cy="306.5" r="2.6"/><rect class="bar" x="394.0" y="394" width="48" height="258" rx="24.0"/><rect class="ico-line" x="408" y="416" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="464" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="513" width="20" height="16" rx="3"/><rect class="ico-line" x="408" y="564" width="20" height="16" rx="3"/><rect class="ico-accent" x="408" y="614" width="20" height="16" rx="3"/></g><rect class="outline" x="0" y="0" width="466" height="678" rx="36"/></svg></figure></div><p class="arr-caption"><code>.prefersToolbarItems</code> では、タブバーが今のタブのボタン 1 つにたたまれ、空いた場所に A、↕、Delete も縦のバーへ入ります（7 項目のうち ↔ 以外がすべて表示される）。たたまれたボタンを長押しすると、ラベル付きのタブの一覧が縦のバーの上に拡大表示されます。<code>.automatic</code> と <code>.prefersTabBar</code> は同じ配置で、タブバーを残してツールバーの項目をあふれメニューに回しました。</p></div>
+  </div>
+  <div class="block">
+    <h3>コード</h3>
+    <div class="code"><pre><code class="language-swift">.toolbar {
+    ToolbarItem(placement: .primaryAction) { button(&quot;Automatic&quot;, systemImage: &quot;a.circle&quot;) }
+        .axisBehavior(.automatic)
+    ToolbarItem(placement: .primaryAction) { button(&quot;Horizontal Only&quot;, systemImage: &quot;arrow.left.and.right&quot;) }
+        .axisBehavior(.horizontalOnly)
+    ToolbarItem(placement: .primaryAction) { button(&quot;Vertical Preferred&quot;, systemImage: &quot;arrow.up.and.down&quot;) }
+        .axisBehavior(.verticalPreferred)
+    ToolbarItem(placement: .primaryAction) { button(&quot;Share&quot;, systemImage: &quot;square.and.arrow.up&quot;) }
+        .visibilityPriority(.high)
+    ToolbarItem(placement: .primaryAction) { button(&quot;Delete&quot;, systemImage: &quot;trash&quot;) }
+        .visibilityPriority(.low)
+    ToolbarItem(placement: .topBarPinnedTrailing) { button(&quot;Done&quot;, systemImage: &quot;checkmark&quot;) }
+    ToolbarOverflowMenu { button(&quot;Export&quot;, systemImage: &quot;square.and.arrow.down&quot;) }
+}
+.toolbarVerticalBehavior(isVerticalEnabled ? .automatic : .disabled)
+.toolbarVerticalCompressionBehavior(compression)
+
+// 縦のバーが左右どちらにあるか（NavigationStack 配下の子 View で読む）
+@Environment(\.toolbarVerticalEdge) private var edge</code></pre></div>
+    <details class="full"><summary>全文を表示</summary><div class="code"><pre><code class="language-swift">import SwiftUI
+
+struct ToolbarSampleView: View {
+    @State private var isVerticalEnabled = true
+    @State private var compression: ToolbarVerticalCompressionBehavior = .automatic
+    @State private var lastTapped = &quot;-&quot;
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(&quot;Status&quot;) {
+                    VerticalEdgeRow()
+                    LabeledContent(&quot;Last tapped&quot;, value: lastTapped)
+                }
+
+                Section(&quot;Settings&quot;) {
+                    Toggle(&quot;Vertical toolbar&quot;, isOn: $isVerticalEnabled)
+                    Picker(&quot;Compression&quot;, selection: $compression) {
+                        Text(&quot;automatic&quot;).tag(ToolbarVerticalCompressionBehavior.automatic)
+                        Text(&quot;prefersToolbarItems&quot;).tag(ToolbarVerticalCompressionBehavior.prefersToolbarItems)
+                        Text(&quot;prefersTabBar&quot;).tag(ToolbarVerticalCompressionBehavior.prefersTabBar)
+                    }
+                }
+
+                Section(&quot;Items&quot;) {
+                    itemRow(&quot;a.circle&quot;, &quot;axisBehavior(.automatic)&quot;)
+                    itemRow(&quot;arrow.left.and.right&quot;, &quot;axisBehavior(.horizontalOnly)&quot;)
+                    itemRow(&quot;arrow.up.and.down&quot;, &quot;axisBehavior(.verticalPreferred)&quot;)
+                    itemRow(&quot;square.and.arrow.up&quot;, &quot;visibilityPriority(.high)&quot;)
+                    itemRow(&quot;trash&quot;, &quot;visibilityPriority(.low)&quot;)
+                    itemRow(&quot;checkmark&quot;, &quot;placement: .topBarPinnedTrailing&quot;)
+                    itemRow(&quot;ellipsis&quot;, &quot;ToolbarOverflowMenu&quot;)
+                }
+            }
+            .navigationTitle(&quot;Toolbar&quot;)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    button(&quot;Automatic&quot;, systemImage: &quot;a.circle&quot;)
+                }
+                .axisBehavior(.automatic)
+
+                ToolbarItem(placement: .primaryAction) {
+                    button(&quot;Horizontal Only&quot;, systemImage: &quot;arrow.left.and.right&quot;)
+                }
+                .axisBehavior(.horizontalOnly)
+
+                ToolbarItem(placement: .primaryAction) {
+                    button(&quot;Vertical Preferred&quot;, systemImage: &quot;arrow.up.and.down&quot;)
+                }
+                .axisBehavior(.verticalPreferred)
+
+                ToolbarItem(placement: .primaryAction) {
+                    button(&quot;Share&quot;, systemImage: &quot;square.and.arrow.up&quot;)
+                }
+                .visibilityPriority(.high)
+
+                ToolbarItem(placement: .primaryAction) {
+                    button(&quot;Delete&quot;, systemImage: &quot;trash&quot;)
+                }
+                .visibilityPriority(.low)
+
+                ToolbarItem(placement: .topBarPinnedTrailing) {
+                    button(&quot;Done&quot;, systemImage: &quot;checkmark&quot;)
+                }
+
+                ToolbarOverflowMenu {
+                    button(&quot;Export&quot;, systemImage: &quot;square.and.arrow.down&quot;)
+                }
+            }
+            .toolbarVerticalBehavior(isVerticalEnabled ? .automatic : .disabled)
+            .toolbarVerticalCompressionBehavior(compression)
+        }
+    }
+
+    private func button(_ title: String, systemImage: String) -&gt; some View {
+        Button(title, systemImage: systemImage) {
+            lastTapped = title
+        }
+    }
+
+    private func itemRow(_ systemImage: String, _ description: String) -&gt; some View {
+        Label {
+            Text(description)
+                .font(.callout.monospaced())
+        } icon: {
+            Image(systemName: systemImage)
+        }
+    }
+}
+
+// toolbarVerticalEdge は NavigationStack 配下で解決されるため、子 View で読む
+private struct VerticalEdgeRow: View {
+    @Environment(\.toolbarVerticalEdge) private var edge
+
+    var body: some View {
+        LabeledContent(&quot;Vertical edge&quot;, value: description)
+    }
+
+    private var description: String {
+        switch edge {
+        case .leading: &quot;leading&quot;
+        case .trailing: &quot;trailing&quot;
+        case nil: &quot;none (horizontal)&quot;
+        }
+    }
+}
+
+#Preview {
+    ToolbarSampleView()
+}</code></pre></div></details>
+  </div>
+</section>
+
+<section class="tab" id="caveats">
+  <div class="tab-head">
+    <h2>注意点</h2>
+  </div>
+  <ul class="points">
+    <li><b>シミュレータにはカメラがありません。</b>カメラの一覧を取得すると空になります。カメラを起動したときに予約領域の active が変わるか、撮影中に外側の画面へ内容を出す <a class="doc" href="https://developer.apple.com/documentation/swiftui/cameracaptureaccessory" target="_blank" rel="noopener"><code>CameraCaptureAccessory</code></a> が動くかは、実機でしか確かめられません。</li>
+    <li><b>予約領域の取得結果は環境によって違うことがあります。</b>外部の検証記事では Xcode 27.1 beta のシミュレータで 0 件と報告されていますが、今回の環境では上の表のとおり取得できました。</li>
+  </ul>
+</section>
+
+<footer>
+  参考: <a href="https://developer.apple.com/documentation/swiftui/arrangementview" target="_blank" rel="noopener">ArrangementView（Apple）</a> ·
+  <a href="https://swiftuisnippets.wordpress.com/2026/09/24/using-overlayarrangementedge-in-swiftui-for-iphone-duo/" target="_blank" rel="noopener">overlayArrangementEdge</a> ·
+  <a href="https://swiftuisnippets.wordpress.com/2026/09/22/detecting-reserved-regions-on-iphone-duo-with-the-new-ios-27-1-api/" target="_blank" rel="noopener">Reserved Regions</a> ·
+  <a href="https://zenn.dev/d_date/articles/d874e248ac7851" target="_blank" rel="noopener">iPhone Duo に備える</a> ·
+  <a href="https://speakerdeck.com/yuukiw00w/su-xi-iphone-duodui-ying" target="_blank" rel="noopener">速習 iPhone Duo 対応</a>
+</footer>
+
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha384-F/bZzf7p3Joyp5psL90p/p89AZJsndkSoGwRpXcZhleCWhd8SnRuoYo4d0yirjJp" crossorigin="anonymous"></script>
+<script>
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll("nav.toc a"));
+    if (!("IntersectionObserver" in window) || !links.length) return;
+    var byId = {};
+    links.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (a) { a.removeAttribute("aria-current"); });
+        var a = byId[e.target.id];
+        if (a) a.setAttribute("aria-current", "true");
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    Object.keys(byId).forEach(function (id) { var el = document.getElementById(id); if (el) io.observe(el); });
+  })();
+  if (window.hljs) {
+    document.querySelectorAll("pre code.language-swift").forEach(function (el) { window.hljs.highlightElement(el); });
+  }
+</script>
