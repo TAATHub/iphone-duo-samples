@@ -20,7 +20,7 @@ iPhone Duo の画面サイズと、iOS 27.1 で追加された折りたたみ端
 
 各タブのコード、シミュレータでの実測値、閉じた状態・半開き・平らに開いた状態での配置の違いは、解説資料にまとめています。
 
-**[解説資料を開く](https://taathub.github.io/iphone-duo-samples/iphone-duo-sample-guide.html)**（ソースは [docs/iphone-duo-sample-guide.html](docs/iphone-duo-sample-guide.html)）
+**[解説資料を開く](https://taathub.github.io/iphone-duo-samples/)**（ソースは [docs/index.html](docs/index.html)）
 
 ## ビルド
 
@@ -40,7 +40,7 @@ iPhoneDuoTest/
     ├── ReservedRegions/     # タブ 4
     └── Toolbar/             # タブ 5
 docs/
-└── iphone-duo-sample-guide.html
+└── index.html               # 解説資料（GitHub Pages で公開）
 ```
 
 ## 注意点
