@@ -18,7 +18,9 @@ iPhone Duo の画面サイズと、iOS 27.1 で追加された折りたたみ端
 | Regions | ヒンジやカメラなど、ハードウェアに隠される領域を画面上に描く | `GeometryProxy.reservedRegions(kind:options:)` |
 | Toolbar | 縦のバーに移るツールバー項目の扱いを見比べる | `axisBehavior`, `visibilityPriority`, `toolbarVerticalBehavior`, `toolbarVerticalCompressionBehavior` |
 
-各タブのコード、シミュレータでの実測値、閉じた状態・半開き・平らに開いた状態での配置の違いは、解説資料 [docs/iphone-duo-sample-guide.html](docs/iphone-duo-sample-guide.html) にまとめています。ダウンロードしてブラウザで開いてください。
+各タブのコード、シミュレータでの実測値、閉じた状態・半開き・平らに開いた状態での配置の違いは、解説資料にまとめています。
+
+**[解説資料を開く](https://taathub.github.io/iphone-duo-samples/iphone-duo-sample-guide.html)**（ソースは [docs/iphone-duo-sample-guide.html](docs/iphone-duo-sample-guide.html)）
 
 ## ビルド
 
